@@ -24,6 +24,7 @@ java -cp out week06.MatchingBrackets
 java -cp out week06.ContainerWithMostWater
 java -cp out week06.LongestSubstring
 java -cp out week06.ThreeSum
+java -cp out week06.DaysUntilWarmer
 ```
 
 ## Week 5: Problems
@@ -67,6 +68,7 @@ The HashMap version was roughly 18x faster because it does one O(n) pass with O(
 | 2 | `ContainerWithMostWater` | Two pointers from both ends (+ brute-force comparison) | O(n) / O(n^2) | O(1) |
 | 3 | `LongestSubstring` | Sliding window with each character's last index (+ brute-force comparison) | O(n) / O(n^2) | O(k), k = distinct characters |
 | 4 | `ThreeSum` | Sort, fix one number, two pointers for the rest (+ brute-force comparison) | O(n^2) / O(n^3) | O(n) for the sorted copy |
+| 5 | `DaysUntilWarmer` | Monotonic stack of indexes of days still waiting (+ brute-force comparison) | O(n) / O(n^2) | O(n) |
 
 ### Problem details
 
@@ -77,6 +79,8 @@ The HashMap version was roughly 18x faster because it does one O(n) pass with O(
 **3. LongestSubstring** — Grow a window on the right; when a character repeats, jump the left edge past its last position. The left edge must only ever move forward: in `"abba"` the last `a` was seen before the window started, so `Math.max` keeps the left edge from jumping backwards.
 
 **4. ThreeSum** — Sort a copy of the array, fix each number in turn, then find the other two with two pointers (Problem 2's trick). Repeated values are skipped in three places (the fixed number, and both pointers after a match), or the same triplet would be added more than once. Cross-checked against the brute-force version on 200 random arrays.
+
+**5. DaysUntilWarmer** — Keep a stack of the indexes of days still waiting for a warmer day, coldest on top. Each new day pops every waiting day that's colder than it, and the answer for each popped day is the distance between the two indexes. That's why the stack holds indexes, not temperatures, and why the pop is a `while` loop, not an `if`: one warm day can settle several waiting days at once. The `while` loop inside the `for` loop doesn't make it quadratic: each index is pushed once and popped at most once, so across the whole run there are at most n pushes and n pops, and the total work is O(n) (amortised). Days still on the stack at the end never found a warmer day and stay 0, and an equal temperature doesn't count as warmer.
 
 ## ThreeSum timing results
 
