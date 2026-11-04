@@ -9,6 +9,7 @@ Data Structures and Algorithms practice for the OpsDesk internship. Each week's 
 ```
 javac -d out src/week05/*.java
 javac -d out src/week06/*.java
+javac -d out src/week07/*.java
 ```
 
 **Run each problem:**
@@ -25,6 +26,12 @@ java -cp out week06.ContainerWithMostWater
 java -cp out week06.LongestSubstring
 java -cp out week06.ThreeSum
 java -cp out week06.DaysUntilWarmer
+
+java -cp out week07.ReverseList
+java -cp out week07.SearchRange
+java -cp out week07.RotatedSearch
+java -cp out week07.MergeSort
+java -cp out week07.DetectCycle
 ```
 
 ## Week 5: Problems
@@ -93,3 +100,36 @@ Results match: true
 ```
 
 Both versions found the same 71,474 triplets, and the two-pointer version was roughly 29x faster. The brute force checks every combination of three positions, about n^3/6, or roughly 560 million for n = 1,500, while the fast version sorts once and then does one linear pass of the two pointers for each fixed number, about n^2, or roughly 2.25 million steps. As with TwoSum, the brute-force version ran first and had more chance to be JIT-compiled before the fast version ran, so the real gap is wider than 29x.
+
+## Week 7: Problems
+
+| # | Class | Pattern | Time | Space |
+|---|---|---|---|---|
+| 1 | `ReverseList` | Re-point each node's `next` backwards, as a loop and recursively | O(n) | O(1) loop / O(n) recursion (call stack) |
+| 2 | `SearchRange` | Binary search twice, continuing left or right after a match (+ linear scan comparison) | O(log n) / O(n) | O(1) |
+| 3 | `RotatedSearch` | Binary search where one half is always sorted, keeping the half that can hold the target (+ linear scan comparison) | O(log n) / O(n) | O(1) |
+| 4 | `MergeSort` | Recursive split, then a two-pointer merge (+ insertion sort comparison) | O(n log n) / O(n^2) | O(n) / O(1) |
+| 5 | `DetectCycle` | Slow and fast pointers meet in the cycle, then a walk from the head finds its start (+ HashSet comparison) | O(n) | O(1) / O(n) |
+
+### Problem details
+
+**1. ReverseList** — Walk the list and point each node's `next` back at the node before it. The node ahead has to be saved first: flip `curr.next` before saving it and the rest of the list is lost. The recursive version reverses everything after the head, then makes the node after the head point back to it and the head the new tail. Both are O(n) time; the loop needs O(1) space, while the recursion uses O(n) for its call stack.
+
+**2. SearchRange** — Two binary searches. When one finds the target it doesn't stop: it remembers the index and keeps going left (for the first position) or right (for the last), so it returns the edges of the run rather than any match. O(log n) time against the linear scan's O(n), both O(1) space.
+
+**3. RotatedSearch** — In a rotated sorted array, at every step at least one half is sorted. Check whether the target falls inside that sorted half's range; if it does, keep that half, otherwise keep the other. The comparison has to be `nums[left] <= nums[mid]`, not `<`: in `[3, 1]`, left and mid are the same index, and `<` picks the wrong half. O(log n) time against the linear scan's O(n), both O(1) space.
+
+**4. MergeSort** — Split the array in half, sort each half by calling `mergeSort` again, then merge the two sorted halves with two pointers, the same merge as Week 5's `MergeSorted`. The base case (0 or 1 element is already sorted) is what stops the recursion. Cross-checked against `Arrays.sort` on 200 random arrays with lengths from 0 to 29 and many duplicates. O(n log n) time and O(n) space, against insertion sort's O(n^2) time and O(1) extra space.
+
+**5. DetectCycle** — Slow moves one step and fast moves two; if there's a cycle they meet inside it. Then a pointer from the head and a pointer from the meeting point, both moving one step, meet exactly at the cycle's start. Why: if the head is a steps from the start, and they meet b steps into a cycle of length c, slow has walked a + b and fast twice that. The extra a + b that fast walked is whole laps, so a + b is a multiple of c, which means walking a more steps from the meeting point finishes a lap and lands on the start. Nodes are compared with `==`, not by value: `[5, 5, 5, 5]` shows why. O(n) time and O(1) space, against the HashSet version's O(n) space.
+
+## MergeSort timing results
+
+With 20,000 random numbers between -500,000 and 500,000:
+
+```
+Merge sort:     3.03 ms
+Insertion sort: 59.07 ms
+```
+
+Merge sort was roughly 19.5x faster. It splits the array about 14 times (log2 of 20,000) and does n work at each level, roughly 286,000 steps, while insertion sort shifts each element past the larger ones before it, around 100 million operations on random input (about n^2/4). As in Week 6, there's a JIT caveat: merge sort ran first and had less chance to be optimised than insertion sort, which ran second, so if anything the gap is understated here rather than overstated. The direction differs from the Week 5 and Week 6 notes for a reason: there the slow version ran first and ran long enough (hundreds of milliseconds, hundreds of millions of operations) to be compiled partway through its own execution, so it was the one flattered. Here merge sort finishes in three milliseconds, far too short to self-optimise, so running first makes it the colder of the two. Either way the measured gap understates the real one.
