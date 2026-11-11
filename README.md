@@ -10,6 +10,7 @@ Data Structures and Algorithms practice for the OpsDesk internship. Each week's 
 javac -d out src/week05/*.java
 javac -d out src/week06/*.java
 javac -d out src/week07/*.java
+javac -d out src/week08/*.java
 ```
 
 **Run each problem:**
@@ -32,6 +33,12 @@ java -cp out week07.SearchRange
 java -cp out week07.RotatedSearch
 java -cp out week07.MergeSort
 java -cp out week07.DetectCycle
+
+java -cp out week08.InvertTree
+java -cp out week08.LevelOrder
+java -cp out week08.ValidBST
+java -cp out week08.KthLargest
+java -cp out week08.MergeKLists
 ```
 
 ## Week 5: Problems
@@ -133,3 +140,27 @@ Insertion sort: 59.07 ms
 ```
 
 Merge sort was roughly 19.5x faster. It splits the array about 14 times (log2 of 20,000) and does n work at each level, roughly 286,000 steps, while insertion sort shifts each element past the larger ones before it, around 100 million operations on random input (about n^2/4). As in Week 6, there's a JIT caveat: merge sort ran first and had less chance to be optimised than insertion sort, which ran second, so if anything the gap is understated here rather than overstated. The direction differs from the Week 5 and Week 6 notes for a reason: there the slow version ran first and ran long enough (hundreds of milliseconds, hundreds of millions of operations) to be compiled partway through its own execution, so it was the one flattered. Here merge sort finishes in three milliseconds, far too short to self-optimise, so running first makes it the colder of the two. Either way the measured gap understates the real one.
+
+## Week 8: Problems
+
+Trees and heaps. Trees are built and printed with `TreeNode.fromArray` and `TreeNode.show`, in the guide's level-by-level form (`[5,1,4,null,null,3,6]`). In the complexities below, n is the number of nodes, h the tree's height and w its widest level.
+
+| # | Class | Pattern | Time | Space |
+|---|---|---|---|---|
+| 1 | `InvertTree` | Swap each node's children, then do the same below, recursively and with a queue | O(n) | O(h) recursion / O(w) queue |
+| 2 | `LevelOrder` | Breadth-first search with a queue, one level per round | O(n) | O(w) |
+| 3 | `ValidBST` | Pass an allowed range down the recursion, narrowing it at each step | O(n) | O(h) |
+| 4 | `KthLargest` | Min-heap that never holds more than k numbers (+ sort comparison) | O(n log k) / O(n log n) | O(k) / O(n) |
+| 5 | `MergeKLists` | Min-heap holding the front node of every list (+ merging the lists one at a time) | O(N log k) / O(k * N) | O(k) / O(1) |
+
+### Problem details
+
+**1. InvertTree** — At every node, swap the left and right children, then do the same for each child. The recursive version trusts that the same method already inverts each subtree. The queue version visits the nodes level by level instead, and adds a child to the queue only if it isn't null; adding the null children and then reading their fields was the crash on the way. Both are O(n) time. The recursion's call stack is O(h), which is O(n) for a tree shaped like a chain, while the queue holds at most one level, O(w).
+
+**2. LevelOrder** — Breadth-first search: take a node from the queue, record it, add its children. To group the values by level, note the queue's size at the start of each round. That is exactly the number of nodes in the current level, so process that many and no more. Using `queue.size()` directly in the loop condition goes wrong, because the size changes as the children are added. O(n) time, O(w) space for the queue.
+
+**3. ValidBST** — Comparing each node only with its direct children is not enough: in `[5,4,6,null,null,3,7]`, 3 is a correct left child of 6 but sits in the root's right subtree, so it must be greater than 5. Instead, pass an allowed range down the recursion. Going left, the node's value becomes the new upper limit; going right, it becomes the new lower limit. The limits are `long`, starting at `Long.MIN_VALUE` and `Long.MAX_VALUE`, so a node holding `Integer.MAX_VALUE` or `Integer.MIN_VALUE` still fits strictly inside "no limit". Equal values are refused, since the rule is strictly less and strictly greater. O(n) time, O(h) space for the recursion.
+
+**4. KthLargest** — The simple version sorts a copy and picks index `length - k`. The heap version keeps a min-heap of the k largest numbers seen so far: add each number, and when the heap grows past k, throw out the smallest, which can't be in the top k. At the end the heap's top, the smallest of the k largest, is the kth largest. A max-heap was the first attempt; it keeps the wrong end and needs every value stored. Both versions throw an `IllegalArgumentException` when k is below 1 or above the array length, and they agree on 100 random arrays (lengths 1 to 20, values -20 to 20) with random k. O(n log k) time and O(k) space, against sorting's O(n log n) time and O(n) for the copy.
+
+**5. MergeKLists** — The first version merges the lists into a growing result one at a time, with a two-list merge that relinks nodes behind a dummy head. The heap version keeps the current front node of every list in a min-heap, skipping null lists at the start: take the smallest, attach it to the result, and put its next node in the heap. The heap never holds more than one node per list. Both relink the input nodes rather than copying values, so each version must get its own freshly built lists: the random test first passed the same lists to both, and the second version received input the first had already merged. They agree on 100 random inputs of 0 to 5 lists, each 0 to 5 long. With N nodes in total, the heap version is O(N log k) time and O(k) space, against the one-at-a-time version's O(k * N) time and O(1) space.
